@@ -76,8 +76,11 @@ public class PlayerScript : MonoBehaviour
     [SerializeField] float slideDeceleration;
     [SerializeField] float maxSlideDeceleration;
     float lastFrameVelocity;
-    Vector3 forward;
     float currentCounterSlide;
+    Vector3 forward;
+    Vector3 left;
+    Vector3 right;
+    Vector3 back;
     //for slide, shoot out a laser and if the distance is greater than a certain distance, continually boost and don't decelerate
     //heights
     [SerializeField] float crouchingLoweringSpeed; //meter per second 
@@ -119,6 +122,7 @@ public class PlayerScript : MonoBehaviour
         UpdateMovement();
         if (!sliding)
         {
+            CalculateDirection();
             BasicMoves();
         }
         else if (sliding)
@@ -132,7 +136,7 @@ public class PlayerScript : MonoBehaviour
     }
     private void CalculateSlope()
     {
-        if (Vector3.Distance(player.transform.position, previousLocation) > 0.05)
+        if (Vector3.Distance(player.transform.position, previousLocation) > 0)
         {
             float sum = 0;
             float count = 0;
@@ -249,6 +253,62 @@ public class PlayerScript : MonoBehaviour
                 
             previousLocation = player.transform.position;
         }       
+    }
+    private void CalculateDirection()
+    {
+        forward = transform.forward;
+        right = transform.right;
+        back = -transform.forward;
+        left = -transform.right;
+        bool[] conditions = new bool[4] { pressingForward, pressingRight, pressingBack, pressingLeft };
+        Vector3[] directions = new Vector3[4] { forward, right, back, left };
+        for (int i = 0; i < conditions.Length; ++i)
+        {
+            if (conditions[i])
+            {
+                float sum;
+                float count;
+                float slopeRange = 360 / numOfSlopePoints;
+                sum = 0;
+                count = 0;
+                for (int j = 0; j < slopes.Count; ++j)
+                {
+                    float minAngle = (j * slopeRange - slopeRange / 2) % 360;
+                    float maxAngle = (j * slopeRange + slopeRange / 2) % 360;
+                    float minDirectionAngle = ((player.transform.eulerAngles.y + i * 90) % 360 - directionAngleRange / 2f) % 360;
+                    float maxDirectionAngle = ((player.transform.eulerAngles.y + i * 90) % 360 + directionAngleRange / 2f) % 360;
+                    if (minAngle >= minDirectionAngle && minAngle <= maxDirectionAngle || maxAngle >= minDirectionAngle && maxAngle <= maxDirectionAngle)
+                    {
+                        sum += slopes[j];
+                        ++count;
+                    }
+                }
+                float tempSlope = 0;
+                if (count > 0)
+                    tempSlope = sum / count;
+                //we need to find the y change
+                if (tempSlope == 0)
+                    continue;
+                if (tempSlope > 0)
+                {
+                    float hyp = 1 / Mathf.Cos(Mathf.Abs(tempSlope) / 180 * Mathf.PI);
+                    float y = Mathf.Sqrt(hyp * hyp - 1);
+                    directions[i] -= new Vector3(0, y, 0);
+                }
+                else
+                {
+                    float hyp = 1 / Mathf.Cos(Mathf.Abs(tempSlope) / 180 * Mathf.PI);
+                    float y = Mathf.Sqrt(hyp * hyp - 1);
+                    directions[i] += new Vector3(0, y, 0);
+                }
+            }
+
+
+        }
+        forward = directions[0];
+        right = directions[1];
+        back = directions[2];
+        left = directions[3];
     }
     private void GravityCheck()
     {
@@ -375,7 +435,6 @@ public class PlayerScript : MonoBehaviour
             {
                 sliding = true;
                 currentCounterSlide = 0;
-                forward = transform.forward;
                 crouching = false;
                 sprinting = false;
             }
@@ -396,19 +455,19 @@ public class PlayerScript : MonoBehaviour
     {
         if (movingForward)
         {
-            playerRigidbody.AddForce(transform.forward * Time.deltaTime * groundAcceleration);
+            playerRigidbody.AddForce(forward * Time.deltaTime * groundAcceleration);
         }
         if (movingLeft)
         {
-            playerRigidbody.AddForce(-transform.right * Time.deltaTime * groundAcceleration);
+            playerRigidbody.AddForce(left * Time.deltaTime * groundAcceleration);
         }
         if (movingRight)
         {
-            playerRigidbody.AddForce(transform.right * Time.deltaTime * groundAcceleration);
+            playerRigidbody.AddForce(right * Time.deltaTime * groundAcceleration);
         }
         if (movingBackward)
         {
-            playerRigidbody.AddForce(-transform.forward * Time.deltaTime * groundAcceleration);
+            playerRigidbody.AddForce(back * Time.deltaTime * groundAcceleration);
         }     
     }
     private void Sliding()
