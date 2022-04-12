@@ -1010,7 +1010,7 @@ MonoBehaviour:
   headRatio: 0.75
   slopes: []
   forwardSlope: 0
-  slidingSlope: 55
+  slidingSlope: 25
   fallingSlope: 80
   numOfSlopeCircles: 3
   slopeCircleRadius: 2

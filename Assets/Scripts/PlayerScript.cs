@@ -10,6 +10,7 @@ public class PlayerScript : MonoBehaviour
     //make combination moves later
     //make it so that maxGroundSpeed slow down is fast, but not instant
     //Can only walk/sprint when height is normal
+    //make gravity Counter Movement, so that the player doesn't slide down inclines
 
     //momentum cap only after player hits the ground
     //make wasd move
@@ -286,7 +287,6 @@ public class PlayerScript : MonoBehaviour
                 float tempSlope = 0;
                 if (count > 0)
                     tempSlope = sum / count;
-                //we need to find the y change
                 if (tempSlope == 0)
                     continue;
                 if (tempSlope > 0)
@@ -312,7 +312,7 @@ public class PlayerScript : MonoBehaviour
     }
     private void GravityCheck()
     {
-        playerRigidbody.useGravity = !onGround; //do this later (gravity stuff is stupid)
+        //playerRigidbody.useGravity = !onGround; //do this later (gravity stuff is stupid)
     }
     private void CheckInput()
     {
@@ -472,15 +472,22 @@ public class PlayerScript : MonoBehaviour
     }
     private void Sliding()
     {
-        currentCounterSlide = currentCounterSlide + slideDeceleration * Time.deltaTime < maxSlideDeceleration ? currentCounterSlide + slideDeceleration * Time.deltaTime : maxSlideDeceleration;
         playerRigidbody.AddForce(forward * Time.deltaTime * slideAcceleration);
         playerRigidbody.AddForce(-forward * Time.deltaTime * currentCounterSlide);
-        if (currentCounterSlide > slideAcceleration && Mathf.Round(lastFrameVelocity) < Mathf.Round(playerRigidbody.velocity.magnitude))
-        {
-            sliding = false;
-        }
 
-        lastFrameVelocity = playerRigidbody.velocity.magnitude;
+        if (forwardSlope < slidingSlope)
+        {
+            currentCounterSlide = currentCounterSlide + slideDeceleration * Time.deltaTime < maxSlideDeceleration ? currentCounterSlide + slideDeceleration * Time.deltaTime : maxSlideDeceleration;
+            if (currentCounterSlide > slideAcceleration && Mathf.Round(lastFrameVelocity) < Mathf.Round(playerRigidbody.velocity.magnitude))
+            {
+                sliding = false;
+            }
+            lastFrameVelocity = playerRigidbody.velocity.magnitude;
+        }
+        else
+        {
+            currentCounterSlide = currentCounterSlide - slideDeceleration * Time.deltaTime  > 0 ? currentCounterSlide - slideDeceleration * Time.deltaTime : 0;
+        }
     }
     private void VelocityController() // three different states, in air, on ground, and landed
     {
